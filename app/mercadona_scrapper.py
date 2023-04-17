@@ -40,6 +40,18 @@ class MercadonaScrapper(object):
         self.search_in_products('a')
         self._scrap_elements()
 
+        self.search_in_products('e')
+        self._scrap_elements()
+
+        self.search_in_products('i')
+        self._scrap_elements()
+
+        self.search_in_products('o')
+        self._scrap_elements()
+
+        self.search_in_products('u')
+        self._scrap_elements()
+
         return self.elements
 
     def search_in_products(self, term):
@@ -74,7 +86,7 @@ class MercadonaScrapper(object):
         for tr in pagina:
             if 'InsertaLinea(' in tr:
                 columnas = list(csv.reader([tr[tr.find('InsertaLinea(')+13:-2]]))[0]
-                elements.append(Product(columnas[3],columnas[4],columnas[0]))
+                elements.append(Product(columnas))
             else:
                 continue
         # ~ for tr in self.find_css_elements('tr:not(.tblcabecera)'):
@@ -111,7 +123,5 @@ class MercadonaScrapper(object):
 
 class Product(object):
 
-    def __init__(self, title, price, link):
-        self.title = title
-        self.price = price
-        self.link = link
+    def __init__(self, columnas):
+        self.columnas = columnas

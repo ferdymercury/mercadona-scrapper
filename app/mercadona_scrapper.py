@@ -1,9 +1,12 @@
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from conf.credentials import password, username
 import time
 import random
-
+import csv
 
 class MercadonaScrapper(object):
 
@@ -17,7 +20,7 @@ class MercadonaScrapper(object):
     search_url = 'https://www.telecompra.mercadona.es/lista.php?busc_ref=%s&posicion_actual=%s'
 
     def __init__(self):
-        self.driver = webdriver.Chrome('bin/chromedriver')
+        self.driver = webdriver.Firefox()
         self.driver.implicitly_wait(2)
         self.login()
 
@@ -25,9 +28,11 @@ class MercadonaScrapper(object):
         self.driver.get(self.login_url)
 
         for key, val in self.login_credentials.items():
-            self.driver.find_element_by_id(key).send_keys(val)
+            self.driver.find_element(By.ID,key).send_keys(val)
 
-        self.driver.find_element_by_xpath(self.login_submit_button).click()
+        time.sleep(2)# Prevent ROBOT
+
+        self.driver.find_element(By.XPATH,self.login_submit_button).click()
 
     def get_products(self):
         self.elements = []
@@ -47,42 +52,49 @@ class MercadonaScrapper(object):
         self.elements = [*self.elements, *self._parse_elements()]
         while prev_len != len(self.elements):
             prev_len = len(self.elements)
-
+            time.sleep(3)
             self.next_page()
             self.reload_on_ban()
             self.elements = [*self.elements, *self._parse_elements()]
 
-    
+
     def next_page(self):
         self.item = self.item + 20
         self.driver.get(self.search_url % (self.term, self.item))
-    
+
     def reload_on_ban(self):
-        if 'The requested URL was rejected.' in self.driver.find_element_by_tag_name('body').text:
+        if 'The requested URL was rejected.' in self.driver.find_element(By.TAG_NAME,'body').text:
             url = self.driver.current_url
             self.login()
             self.driver.get(url)
 
     def _parse_elements(self):
         elements = []
-        for tr in self.find_css_elements('tr:not(.tablacabecera)'):
-            title, link, price, *_ = tr.find_elements_by_tag_name('td')
-            elements.append(
-                Product(
-                    title.text,
-                    float(
-                        price.find_element_by_tag_name('span').text
-                        .replace(',', '.').split(' ')[0]
-                    ),
-                    link.find_element_by_tag_name('a').get_attribute(
-                        'href') if link.text.strip() else None
-                )
-            )
+        pagina = self.driver.page_source.splitlines()
+        for tr in pagina:
+            if 'InsertaLinea(' in tr:
+                columnas = list(csv.reader([tr[tr.find('InsertaLinea(')+13:-2]]))[0]
+                elements.append(Product(columnas[3],columnas[4],columnas[0]))
+            else:
+                continue
+        # ~ for tr in self.find_css_elements('tr:not(.tblcabecera)'):
+            # ~ title, link, price, *_ = tr.find_element(By.TAG_NAME,'td')
+            # ~ elements.append(
+                # ~ Product(
+                    # ~ title.text,
+                    # ~ float(
+                        # ~ price.find_element(By.TAG_NAME,'span').text
+                        # ~ .replace(',', '.').split(' ')[0]
+                    # ~ ),
+                    # ~ link.find_element(By.TAG_NAME,'a').get_attribute(
+                        # ~ 'href') if link.text.strip() else None
+                # ~ )
+            # ~ )
         return elements
 
     def find_css_elements(self, css):
         try:
-            return self.driver.find_elements_by_css_selector(css)
+            return self.driver.find_element(By.CSS_SELECTOR,css)
         except NoSuchElementException:
             return []
 

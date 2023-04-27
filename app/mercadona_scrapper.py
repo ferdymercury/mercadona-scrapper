@@ -86,6 +86,7 @@ class MercadonaScrapper(object):
         for tr in pagina:
             if 'InsertaLinea(' in tr:
                 columnas = list(csv.reader([tr[tr.find('InsertaLinea(')+13:-2]]))[0]
+                columnas.append('https://www.telecompra.mercadona.es/detall_producte.php?id='+str(columnas[0]))
                 elements.append(Product(columnas))
             else:
                 continue
